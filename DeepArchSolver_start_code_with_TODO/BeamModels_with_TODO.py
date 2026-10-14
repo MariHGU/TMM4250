@@ -73,10 +73,10 @@ class BeamModel:
             ex2 = self.coords[inod2,0]
             ex = np.array([ex1,ex2])
             ey = np.array([self.coords[inod1,1],self.coords[inod2,1]])
-            Ke = CorotBeam.beam2e(ex, ey, self.ep)   #TODO something better here
+            Ke = CorotBeam.beam2e(ex, ey, self.ep)      #TODO something better here
             Edofs = self.Edofs[iel] - 1
-            disp_e = disp_sys[np.ix_(Edofs)] # ix_ picks elements with indexes in Edofs
-            f_int_e = Ke @ disp_e   #TODO something better here. Original: f_int_e = Ke * disp_e 
+            disp_e = disp_sys[np.ix_(Edofs)]            # ix_ picks elements with indexes in Edofs
+            f_int_e = Ke @ disp_e                       #Changed from * til @
             f_int_sys[np.ix_(Edofs)] += f_int_e
 
         return f_int_sys
