@@ -45,9 +45,10 @@ class BeamModel:
             ex2 = self.coords[inod2,0]
             ex = np.array([ex1,ex2])
             ey = np.array([self.coords[inod1,1],self.coords[inod2,1]])
-            Ke = CorotBeam.beam2e(ex, ey, self.ep) #TODO use updated routine here
-            Edofs = self.Edofs[iel] - 1
-            K_sys[np.ix_(Edofs,Edofs)] += Ke
+            Edofs = self.Edofs[iel] - 1           
+            disp_e = disp_sys[np.ix_(Edofs)]        #Added: Element displacement
+            Ke, f_int_e = CorotBeam.beam2corot_Ke_and_Fe(ex, ey, self.ep, disp_e)   #Added: Corotational element
+            K_sys[np.ix_(Edofs,Edofs)] += Ke       
 
         # Set boundary conditions
         for idof in range(len(self.bc)):
@@ -73,10 +74,9 @@ class BeamModel:
             ex2 = self.coords[inod2,0]
             ex = np.array([ex1,ex2])
             ey = np.array([self.coords[inod1,1],self.coords[inod2,1]])
-            Ke = CorotBeam.beam2e(ex, ey, self.ep)      #TODO something better here
             Edofs = self.Edofs[iel] - 1
             disp_e = disp_sys[np.ix_(Edofs)]            # ix_ picks elements with indexes in Edofs
-            f_int_e = Ke @ disp_e                       #Changed from * til @
+            Ke, f_int_e = CorotBeam.beam2corot_Ke_and_Fe(ex, ey, self.ep, disp_e)
             f_int_sys[np.ix_(Edofs)] += f_int_e
 
         return f_int_sys
