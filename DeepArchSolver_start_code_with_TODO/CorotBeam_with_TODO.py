@@ -31,12 +31,29 @@ def beam2local_def_disp(ex,ey, disp_global):
     eVec12 = np.array([ex[1] - ex[0], ey[1] - ey[0]])
     L0 = math.sqrt(eVec12 @ eVec12)
 
-    Ld = L0 #TODO:  correct this
+    #Added: Position of end nodes
+    x1_now = ex[0] + disp_global[0]
+    y1_now = ey[0] + disp_global[1]
+    x2_now = ex[1] + disp_global[3]
+    y2_now = ey[1] + disp_global[4]
 
-    # TODO: Quite a bit here
+    #Added: Length between nodes
+    dx = x2_now - x1_now
+    dy = y2_now - y1_now
+    Ld = math.sqrt(dx**2 + dy**2)
 
-    theta1_def = 0.0  # TODO: correct this
-    theta2_def = 0.0  # TODO: correct this
+    #Added: Chord rotation
+    angle_now = math.atan2(dy, dx)
+    angle_start = math.atan2(eVec12[1], eVec12[0])
+    chord_rotation = angle_now - angle_start
+
+    #Added: Node rotations
+    theta1_def = disp_global[2] - chord_rotation
+    theta2_def = disp_global[5] - chord_rotation
+
+    #Added: To keep angles between -pi and +pi
+    theta1_def = math.atan2(math.sin(theta1_def), math.cos(theta1_def))
+    theta2_def = math.atan2(math.sin(theta2_def), math.cos(theta2_def))
 
     def_disp_local = np.array([ -0.5*(Ld - L0),
                                 0.0,
@@ -70,9 +87,17 @@ def beam2corot_Ke_and_Fe(ex,ey,ep, disp_global):
     ex_def = ex + [disp_global[0], disp_global[3]]
     ey_def = ey + [disp_global[1], disp_global[4]]
 
-    # TODO: Quite a bit here
-    Ke_global = np.zeros((6,6))
-    fe_int_global = np.zeros(6)
+    #Added: Local deformation
+    def_disp_local = beam2local_def_disp(ex, ey, disp_global)
+
+    #Added: Local forces
+    Kle = beam2local_stiff(L0, ep)
+    fe_int_local = Kle @ def_disp_local
+
+    #Added: Transformation from local to global
+    Te = beam2corot_Te(ex_def, ey_def)
+    fe_int_global = Te.T @ fe_int_local
+    Ke_global = Te.T @ Kle @ Te
 
     return Ke_global, fe_int_global
 
