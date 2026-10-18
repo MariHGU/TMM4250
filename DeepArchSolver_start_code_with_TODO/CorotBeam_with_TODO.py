@@ -64,16 +64,16 @@ def beam2local_def_disp(ex,ey, disp_global):
     return def_disp_local
 
 
+
 def beam2corot_Ke_and_Fe(ex,ey,ep, disp_global):
     """
     Compute the stiffness matrix and internal forces for a two dimensional beam element
     relative to deformed configuration.
-    
+
     :param list ex: element x coordinates [x1, x2]
     :param list ey: element y coordinates [y1, y2]
     :param list ep: element properties [E, A, I], E - Young's modulus, A - Cross section area, I - Moment of inertia
     :param list disp_global displacement vector for the element [tx1,ty1,rz1,tx2,ty2,rz2]
-
 
     :return mat Ke_global: element stiffness matrix [6 x 6]
     :return mat fe_int_global: element internal forces [6 x 1]
@@ -96,10 +96,68 @@ def beam2corot_Ke_and_Fe(ex,ey,ep, disp_global):
 
     #Added: Transformation from local to global
     Te = beam2corot_Te(ex_def, ey_def)
-    fe_int_global = Te.T @ fe_int_local
-    Ke_global = Te.T @ Kle @ Te
+
+    # Problem 2: Geometric stiffness
+    # Current element length and orientation
+    d = np.array([ex_def[1] - ex_def[0],
+                  ey_def[1] - ey_def[0]])
+    L = np.linalg.norm(d)
+
+    n = d / L
+    t = np.array([-n[1], n[0]])
+
+    # Generalized deformations: axial extension and end rotations
+    q = np.array([
+        2.0 * def_disp_local[3],
+        def_disp_local[2],
+        def_disp_local[5]
+    ])
+
+    E, A, I = ep
+
+    # Material stiffness in generalized coordinates
+    D = np.array([
+        [E*A/L0,       0,          0],
+        [0,       4*E*I/L0,   2*E*I/L0],
+        [0,       2*E*I/L0,   4*E*I/L0]
+    ])
+
+    # Internal axial force and end moments
+    p = D @ q
+    N, M1, M2 = p
+
+    # Transformation from global DOFs to generalized deformations
+    B = np.array([
+        [-n[0], -n[1], 0, n[0], n[1], 0],
+        [t[0]/L, t[1]/L, 1, -t[0]/L, -t[1]/L, 0],
+        [t[0]/L, t[1]/L, 0, -t[0]/L, -t[1]/L, 1]
+    ])
+
+    # Internal forces in global coordinates
+    fe_int_global = B.T @ p
+
+    # Material contribution to tangent stiffness
+    K_material = B.T @ D @ B
+
+    # Geometric contribution to tangent stiffness
+    J = np.array([
+        [-1, 0, 0, 1, 0, 0],
+        [0, -1, 0, 0, 1, 0]
+    ])
+
+    K_geo_2d = (
+        (N / L) * np.outer(t, t)
+        + ((M1 + M2) / L**2)
+        * (np.outer(t, n) + np.outer(n, t))
+    )
+
+    K_geometric = J.T @ K_geo_2d @ J
+
+    # Total tangent stiffness
+    Ke_global = K_material + K_geometric
 
     return Ke_global, fe_int_global
+
 
     
 def beam2corot_Te(ex,ey):

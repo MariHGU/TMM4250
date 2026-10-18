@@ -251,6 +251,68 @@ class CantileverWithEndMoment(BeamModel):
         self.plotDof = self.num_dofs - 1 # Setting which dof for the Load-disp curve: y disp of last node
 
 
+# Problem 2: Deep arch model
+class DeepArchModel(BeamModel):
+
+    def __init__(self, num_nodes=21):
+        BeamModel.__init__(self)
+
+        if num_nodes < 3 or num_nodes % 2 == 0:
+            raise ValueError("Use an odd number of nodes >= 3")
+
+        self.num_nodes = num_nodes
+        self.num_elements = num_nodes - 1
+        self.num_dofs = num_nodes * 3
+
+        # Geometry and material properties (mm, N)
+        self.R = 1000.0
+        self.L_total = 1600.0
+        self.H = 400.0
+        self.E = 2.1e5
+        b = 1.0
+        h = 10.0
+
+        self.A = b * h
+        self.I = b * h**3 / 12.0
+        self.ep = np.array([self.E, self.A, self.I])
+
+        # Node coordinates along the circular arch
+        x = np.linspace(0.0, self.L_total, num_nodes)
+        y = np.sqrt(
+            self.R**2 - (x - self.L_total / 2.0)**2
+        ) - (self.R - self.H)
+
+        self.coords = np.column_stack((x, y))
+
+        # Element connectivity
+        self.Enods = np.column_stack((
+            np.arange(1, num_nodes),
+            np.arange(2, num_nodes + 1)
+        ))
+
+        self.Edofs = np.array([
+            np.arange(3*i + 1, 3*i + 7)
+            for i in range(self.num_elements)
+        ], dtype=int)
+
+        # Boundary conditions:
+        # Both ends pinned (fixed x and y, free rotation)
+        self.bc = np.array([
+            1, 2,
+            self.num_dofs - 2,
+            self.num_dofs - 1
+        ], dtype=int)
+
+        # Downward point load at the crown
+        self.F0 = self.E * self.I / self.R**2
+        self.inc_load = np.zeros(self.num_dofs)
+
+        mid_y_dof = 3 * (num_nodes // 2) + 1
+        self.inc_load[mid_y_dof] = -self.F0
+
+        # DOF for load-displacement plot (1-based)
+        self.plotDof = mid_y_dof + 1
+
 
 
 
