@@ -15,7 +15,7 @@ F_max = p * 0.1 * np.pi * D**2 / 4
 t_L, F_L = np.loadtxt("CTF1_loaded_abs.rpt", skiprows=2).T
 t_S, F_S = np.loadtxt("CTF1_selfWeight_abs.rpt", skiprows=2).T
 tu_L, u_L = np.loadtxt("U3_loaded.rpt", skiprows=2).T
-tu_S, u_S = np.loadtxt("U3_selfWeight.rpt", skiprows=2).T
+tu_S, u_S = np.loadtxt("U3_selfWeight.rpt", skiprows=3).T
 
 # Select lifting phase (t >= 2)
 L = tu_L >= 2
